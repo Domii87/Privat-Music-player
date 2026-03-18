@@ -1,0 +1,18 @@
+{
+  "name": "Gold Studio Ultimate Pro",
+  "short_name": "GoldStudio",
+  "description": "Premium Private Music Player & Converter",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#fbbf24",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3039/3039430.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
