@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gold Studio Private</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <style>
+        body { background: #050505; font-family: sans-serif; color: white; }
+        .gold-text { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
+        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(251, 191, 36, 0.1); }
+        .rotating { animation: rotate 12s linear infinite; }
+        .paused { animation-play-state: paused; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 min-h-screen flex flex-col items-center justify-center">
+    <div class="max-w-md w-full space-y-6">
+        <header class="text-center"><h1 class="text-2xl font-black gold-text uppercase italic">Gold Studio</h1></header>
+        <section class="glass rounded-[3rem] p-8 shadow-2xl text-center space-y-6">
+            <div id="coverFrame" class="relative mx-auto w-48 h-48 rounded-full border-4 border-amber-500/20 p-2 rotating paused">
+                <img id="albumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400" class="w-full h-full rounded-full object-cover">
+            </div>
+            <div>
+                <h2 id="trackTitle" class="font-bold text-lg truncate gold-text">Privat Player</h2>
+                <p id="artistName" class="text-xs text-slate-500 uppercase tracking-widest">Wähle einen Song</p>
+            </div>
+            <div class="flex justify-center items-center gap-6">
+                <button id="playBtn" class="bg-amber-500 p-5 rounded-full text-black shadow-lg"><i data-lucide="play" fill="currentColor"></i></button>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-4 border-t border-white/5">
+                <input type="range" id="bass" min="-10" max="10" value="0" class="w-full accent-amber-500">
+                <input type="range" id="mid" min="-10" max="10" value="0" class="w-full accent-amber-500">
+                <input type="range" id="high" min="-10" max="10" value="0" class="w-full accent-amber-500">
+            </div>
+        </section>
+        <section class="glass rounded-2xl p-4 flex gap-2">
+            <label class="flex-1 bg-white/5 p-3 rounded-xl text-center cursor-pointer border border-white/10">
+                <span class="text-[10px] font-bold text-amber-500 uppercase">Musik laden</span>
+                <input type="file" id="audioFile" class="hidden" accept="audio/*">
+            </label>
+        </section>
+    </div>
+    <script>
+        lucide.createIcons();
+        const audio = new Audio();
+        let audioCtx, source, bass, mid, high;
+
+        document.getElementById('audioFile').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            window.jsmediatags.read(file, {
+                onSuccess: (tag) => {
+                    document.getElementById('trackTitle').innerText = tag.tags.title || file.name;
+                    document.getElementById('artistName').innerText = tag.tags.artist || "Privat";
+                }
+            });
+            audio.src = URL.createObjectURL(file);
+        };
+
+        document.getElementById('playBtn').onclick = () => {
+            if(!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioCtx.createMediaElementSource(audio);
+                bass = audioCtx.createBiquadFilter(); bass.type = "lowshelf";
+                mid = audioCtx.createBiquadFilter(); mid.type = "peaking";
+                high = audioCtx.createBiquadFilter(); high.type = "highshelf";
+                source.connect(bass).connect(mid).connect(high).connect(audioCtx.destination);
+            }
+            if(audio.paused) {
+                audio.play();
+                document.getElementById('playBtn').innerHTML = '<i data-lucide="pause" fill="currentColor"></i>';
+                document.getElementById('coverFrame').classList.remove('paused');
+            } else {
+                audio.pause();
+                document.getElementById('playBtn').innerHTML = '<i data-lucide="play" fill="currentColor"></i>';
+                document.getElementById('coverFrame').classList.add('paused');
+            }
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
