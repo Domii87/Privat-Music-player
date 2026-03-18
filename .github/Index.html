@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gold Studio Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <style>
+        body { background: #050505; font-family: 'Inter', sans-serif; color: white; overscroll-behavior: none; }
+        .gold-gradient { background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%); }
+        .gold-text { color: #fbbf24; text-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+        .glass { background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(30px); border: 1px solid rgba(251, 191, 36, 0.1); }
+        input[type="range"] { -webkit-appearance: none; background: #1e293b; height: 4px; border-radius: 5px; accent-color: #fbbf24; }
+        .rotating { animation: rotate 10s linear infinite; }
+        .paused { animation-play-state: paused; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 min-h-screen flex flex-col items-center justify-center">
+    <div class="max-w-md w-full space-y-6">
+        
+        <header class="text-center">
+            <h1 class="text-3xl font-black gold-text uppercase tracking-tighter italic">Gold Studio</h1>
+        </header>
+
+        <section class="glass rounded-[3.5rem] p-8 shadow-2xl space-y-6 relative overflow-hidden">
+            <div class="relative mx-auto w-56 h-56 group">
+                <div id="coverFrame" class="w-full h-full rounded-full border-4 border-amber-500/20 p-2 rotating paused shadow-[0_0_50px_rgba(251,191,36,0.15)]">
+                    <img id="albumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400" 
+                         class="w-full h-full rounded-full object-cover border-2 border-amber-500/50">
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-8 h-8 bg-slate-900 rounded-full border-2 border-amber-500/30"></div>
+                </div>
+            </div>
+
+            <div class="text-center space-y-1">
+                <h2 id="trackTitle" class="font-black text-xl truncate gold-text">Kein Titel</h2>
+                <p id="artistName" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Warte auf Datei...</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 px-4 py-4 bg-black/30 rounded-2xl border border-white/5">
+                <div class="text-center">
+                    <p class="text-[8px] font-bold text-amber-600 mb-1">BASS</p>
+                    <input type="range" id="bass" min="-10" max="10" value="0" class="w-full">
+                </div>
+                <div class="text-center">
+                    <p class="text-[8px] font-bold text-amber-600 mb-1">MID</p>
+                    <input type="range" id="mid" min="-10" max="10" value="0" class="w-full">
+                </div>
+                <div class="text-center">
+                    <p class="text-[8px] font-bold text-amber-600 mb-1">HIGH</p>
+                    <input type="range" id="high" min="-10" max="10" value="0" class="w-full">
+                </div>
+            </div>
+
+            <div class="flex justify-center items-center gap-8">
+                <button class="text-slate-500"><i data-lucide="shuffle" class="w-4 h-4"></i></button>
+                <button id="playBtn" class="gold-gradient p-5 rounded-full text-black shadow-xl active:scale-90 transition-all">
+                    <i data-lucide="play" fill="currentColor"></i>
+                </button>
+                <button class="text-slate-500"><i data-lucide="repeat" class="w-4 h-4"></i></button>
+            </div>
+        </section>
+
+        <section class="glass rounded-[2.5rem] p-6 space-y-4">
+            <div class="flex gap-2">
+                <label class="flex-1 cursor-pointer bg-white/5 border border-white/10 p-4 rounded-2xl text-center hover:bg-white/10 transition-all">
+                    <span class="text-[10px] font-black uppercase text-amber-500">Datei öffnen</span>
+                    <input type="file" id="audioFile" class="hidden" accept="audio/*">
+                </label>
+                <button id="convertBtn" class="flex-1 gold-gradient rounded-2xl font-black text-[10px] uppercase text-black">
+                    Exportieren
+                </button>
+            </div>
+            
+            <div class="flex justify-between px-2">
+                <select id="fmt" class="bg-transparent text-[10px] font-black text-slate-400 outline-none uppercase">
+                    <option value="mp3">Format: MP3</option>
+                    <option value="flac">Format: FLAC</option>
+                    <option value="wav">Format: WAV</option>
+                </select>
+                <span class="text-[10px] font-black text-slate-600 uppercase">Mastering Engine v4.0</span>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let audioCtx, source, bassNode, midNode, highNode;
+        const audio = new Audio();
+        const playBtn = document.getElementById('playBtn');
+        const coverFrame = document.getElementById('coverFrame');
+        const jsmediatags = window.jsmediatags;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            source = audioCtx.createMediaElementSource(audio);
+            bassNode = audioCtx.createBiquadFilter(); bassNode.type = "lowshelf";
+            midNode = audioCtx.createBiquadFilter(); midNode.type = "peaking";
+            highNode = audioCtx.createBiquadFilter(); highNode.type = "highshelf";
+            source.connect(bassNode).connect(midNode).connect(highNode).connect(audioCtx.destination);
+        }
+
+        document.getElementById('audioFile').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            // Song Info & Cover auslesen
+            jsmediatags.read(file, {
+                onSuccess: function(tag) {
+                    const tags = tag.tags;
+                    document.getElementById('trackTitle').innerText = tags.title || file.name;
+                    document.getElementById('artistName').innerText = tags.artist || "Unbekannter Künstler";
+                    
+                    if (tags.picture) {
+                        const { data, format } = tags.picture;
+                        let base64String = "";
+                        for (let i = 0; i < data.length; i++) base64String += String.fromCharCode(data[i]);
+                        document.getElementById('albumArt').src = `data:${format};base64,${window.btoa(base64String)}`;
+                    }
+                },
+                onError: (error) => {
+                    document.getElementById('trackTitle').innerText = file.name;
+                }
+            });
+
+            audio.src = URL.createObjectURL(file);
+        };
+
+        playBtn.onclick = () => {
+            initAudio();
+            if(audio.paused) {
+                audio.play();
+                playBtn.innerHTML = '<i data-lucide="pause" fill="currentColor"></i>';
+                coverFrame.classList.remove('paused');
+            } else {
+                audio.pause();
+                playBtn.innerHTML = '<i data-lucide="play" fill="currentColor"></i>';
+                coverFrame.classList.add('paused');
+            }
+            lucide.createIcons();
+        };
+
+        // EQ Listeners
+        document.getElementById('bass').oninput = (e) => bassNode.gain.value = e.target.value;
+        document.getElementById('mid').oninput = (e) => midNode.gain.value = e.target.value;
+        document.getElementById('high').oninput = (e) => highNode.gain.value = e.target.value;
+
+        document.getElementById('convertBtn').onclick = () => {
+            const file = document.getElementById('audioFile').files[0];
+            if(!file) return;
+            const link = document.createElement('a');
+            link.href = audio.src;
+            link.download = `GOLD_MASTER_${file.name.split('.')[0]}.${document.getElementById('fmt').value}`;
+            link.click();
+        };
+    </script>
+</body>
+</html>
