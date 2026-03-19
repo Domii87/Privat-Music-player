@@ -16,3 +16,15 @@
     }
   ]
 }
+"background_color": "#ffffff",
+  "description": "\"Dein privater Musicplayer mit integriertem Audio-Konverter (MP3, WAV, OGG).\"",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Privat-Music-player",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Music-player",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "lang": "de"
+}
